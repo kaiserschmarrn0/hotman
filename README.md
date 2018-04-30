@@ -12,6 +12,7 @@ Configuration
 -------------
 hotman is configured by editing config.h and recompiling
 
+
 Installation
 ------------
 after editing config.h, install using
