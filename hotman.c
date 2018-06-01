@@ -1,5 +1,3 @@
-//hotman, the hotkey manager for araiwm
-
 #include <xcb/xcb.h>
 #include <X11/keysym.h>
 #include <stdlib.h>
@@ -37,7 +35,7 @@ hot_keygrab(void)
 {
 	xcb_keycode_t keycode;
 	xcb_key_symbols_t *keysyms = xcb_key_symbols_alloc(connection);
-	for (int i = 0; i < 7; i++) {
+	for (int i = 0; i < sizeof(keys)/sizeof(*keys); i++) {
 		keycode = *xcb_key_symbols_get_keycode(keysyms, keys[i].key);
 		xcb_grab_key(connection,
 				0,
