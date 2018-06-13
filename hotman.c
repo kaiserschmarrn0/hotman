@@ -73,7 +73,7 @@ hot_loop(void)
 			e = (xcb_key_press_event_t *)event;
 			keysym = hot_get_keysym(e->detail);
 			for (int i = 0; i < sizeof(keys)/sizeof(keys[0]); i++)
-				if (keysym == keys[i].key)
+				if (keysym == keys[i].key && keys[i].mod == e->state)
 					system(keys[i].command);
 		}
 		xcb_flush(connection);
