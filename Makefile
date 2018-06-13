@@ -14,7 +14,7 @@ hotman.o: config.h
 $(OBJ): config.h config.mk
 
 hotman: $(OBJ)
-	$(CC) -o $@ $(OBJ) $(STCFLAGS) -lxcb -lxcb-keysyms
+	$(CC) -o $@ $(OBJ) $(STCFLAGS) $(STLDFLAGS) -lxcb -lxcb-keysyms
 
 clean:
 	rm -f hotman $(OBJ)
