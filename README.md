@@ -10,11 +10,11 @@ XCB header files
 
 Configuration
 -------------
-hotman is configured by editing config.h and recompiling
+hotman is configured with a config file, and takes the path to this file as it's only command line argument. an example hotman.conf is provided.
 
 
 Installation
 ------------
-after editing config.h, install using
+install using
 
 	make install clean
