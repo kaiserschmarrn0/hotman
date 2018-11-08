@@ -9,9 +9,9 @@ all: hotman
 .c.o:
 	$(CC) $(STCFLAGS) -c $<
 
-hotman.o: config.h
+hotman.o:
 
-$(OBJ): config.h config.mk
+$(OBJ): config.mk
 
 hotman: $(OBJ)
 	$(CC) -o $@ $(OBJ) $(STCFLAGS) $(STLDFLAGS) -lxcb -lxcb-keysyms
