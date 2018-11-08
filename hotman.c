@@ -193,8 +193,8 @@ static int hot_read_config(char *path) {
  xcb_keycode_t keycode;
  xcb_key_symbols_t *keysyms = xcb_key_symbols_alloc(connection);
  for (int i = 0; i < keys_len; i++) {
-	 keycode = *xcb_key_symbols_get_keycode(keysyms, (keys+i)->key);
-	 xcb_grab_key(connection, 0, screen->root, (keys+i)->mod, keycode, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+  keycode = *xcb_key_symbols_get_keycode(keysyms, (keys+i)->key);
+  xcb_grab_key(connection, 0, screen->root, (keys+i)->mod, keycode, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
  }
  xcb_key_symbols_free(keysyms);
 
@@ -239,14 +239,14 @@ int main(int argc, char **argv) {
    e = (xcb_key_press_event_t *)event;
    keysym = hot_get_keysym(e->detail);
    for (int i = 0; i < keys_len; i++)
-	   if (keysym == (keys + i)->key && (keys + i)->mod == e->state) {
+    if (keysym == (keys + i)->key && (keys + i)->mod == e->state) {
      if (nscmp((keys + i)->command, RELOAD_KEY)) hot_read_config(argv[1]);
      else system((keys + i)->command);
     }
   }
   xcb_flush(connection);
   free(event);
-	}
+ }
 
  return 0;
 }
