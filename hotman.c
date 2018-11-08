@@ -78,8 +78,8 @@ static hot_key_map_t hot_key_map[] = {
  { "z" , XK_z },
 };
 
-static xcb_connection_t	*connection;
-static xcb_screen_t	*screen;
+static xcb_connection_t *connection;
+static xcb_screen_t *screen;
 static hot_key_t *keys = NULL;
 static int keys_len,
            keys_max = 8;
@@ -111,16 +111,16 @@ static int hot_search(char *key, int depth, int l, int r) {
 
 static void hot_cleanup(void) {
  free(keys);
-	xcb_ungrab_key(connection, XCB_GRAB_ANY, screen->root, XCB_MOD_MASK_ANY);
-	xcb_flush(connection);
-	xcb_disconnect(connection);
+ xcb_ungrab_key(connection, XCB_GRAB_ANY, screen->root, XCB_MOD_MASK_ANY);
+ xcb_flush(connection);
+ xcb_disconnect(connection);
 }
 
 static xcb_keysym_t hot_get_keysym(xcb_keycode_t keycode) {
-	xcb_key_symbols_t *keysyms = xcb_key_symbols_alloc(connection);
-	xcb_keysym_t keysym = xcb_key_symbols_get_keysym(keysyms, keycode, 0);
-	xcb_key_symbols_free(keysyms);
-	return keysym;
+ xcb_key_symbols_t *keysyms = xcb_key_symbols_alloc(connection);
+ xcb_keysym_t keysym = xcb_key_symbols_get_keysym(keysyms, keycode, 0);
+ xcb_key_symbols_free(keysyms);
+ return keysym;
 }
 
 int nscmp(char *one, char *two) {
@@ -188,15 +188,15 @@ static int hot_read_config(char *path) {
 
  fclose(config);
 
-	xcb_ungrab_key(connection, XCB_GRAB_ANY, screen->root, XCB_MOD_MASK_ANY);
+ xcb_ungrab_key(connection, XCB_GRAB_ANY, screen->root, XCB_MOD_MASK_ANY);
  
  xcb_keycode_t keycode;
-	xcb_key_symbols_t *keysyms = xcb_key_symbols_alloc(connection);
-	for (int i = 0; i < keys_len; i++) {
-		keycode = *xcb_key_symbols_get_keycode(keysyms, (keys+i)->key);
-		xcb_grab_key(connection, 0, screen->root, (keys+i)->mod, keycode, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
-	}
-	xcb_key_symbols_free(keysyms);
+ xcb_key_symbols_t *keysyms = xcb_key_symbols_alloc(connection);
+ for (int i = 0; i < keys_len; i++) {
+	 keycode = *xcb_key_symbols_get_keycode(keysyms, (keys+i)->key);
+	 xcb_grab_key(connection, 0, screen->root, (keys+i)->mod, keycode, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+ }
+ xcb_key_symbols_free(keysyms);
 
  return 1;
 }
@@ -212,41 +212,41 @@ int main(int argc, char **argv) {
  
  //setup connection
  uint32_t values[] = { XCB_EVENT_MASK_KEY_PRESS };
-	connection = xcb_connect(NULL, NULL);
-	screen = xcb_setup_roots_iterator(xcb_get_setup(connection)).data;
-	xcb_change_window_attributes_checked(connection,
-			screen->root,
-			XCB_CW_EVENT_MASK,
-			values);
-	xcb_flush(connection);
+ connection = xcb_connect(NULL, NULL);
+ screen = xcb_setup_roots_iterator(xcb_get_setup(connection)).data;
+ xcb_change_window_attributes_checked(connection,
+   screen->root,
+   XCB_CW_EVENT_MASK,
+   values);
+ xcb_flush(connection);
 
  if (!hot_read_config(argv[1])) return 0;
 
  //register cleanup
-	atexit(hot_cleanup);
+ atexit(hot_cleanup);
 
  //event loop
-	xcb_generic_event_t *event;
-	xcb_key_press_event_t *e;
-	xcb_keysym_t keysym;
-	for (;;) {
-		if (xcb_connection_has_error(connection) != 0) {
-			xcb_disconnect(connection);
-			break;
-		}
-		event = xcb_wait_for_event(connection);
-		if (event && (event->response_type & ~0x80) == XCB_KEY_PRESS) {
-			e = (xcb_key_press_event_t *)event;
-			keysym = hot_get_keysym(e->detail);
-			for (int i = 0; i < keys_len; i++)
-				if (keysym == (keys + i)->key && (keys + i)->mod == e->state) {
+ xcb_generic_event_t *event;
+ xcb_key_press_event_t *e;
+ xcb_keysym_t keysym;
+ for (;;) {
+  if (xcb_connection_has_error(connection) != 0) {
+   xcb_disconnect(connection);
+   break;
+  }
+  event = xcb_wait_for_event(connection);
+  if (event && (event->response_type & ~0x80) == XCB_KEY_PRESS) {
+   e = (xcb_key_press_event_t *)event;
+   keysym = hot_get_keysym(e->detail);
+   for (int i = 0; i < keys_len; i++)
+	   if (keysym == (keys + i)->key && (keys + i)->mod == e->state) {
      if (nscmp((keys + i)->command, RELOAD_KEY)) hot_read_config(argv[1]);
-					else system((keys + i)->command);
+     else system((keys + i)->command);
     }
-		}
-		xcb_flush(connection);
-		free(event);
+  }
+  xcb_flush(connection);
+  free(event);
 	}
 
-	return 0;
+ return 0;
 }
