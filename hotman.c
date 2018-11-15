@@ -190,11 +190,12 @@ static int hot_read_config(char *path) {
 
  xcb_ungrab_key(connection, XCB_GRAB_ANY, screen->root, XCB_MOD_MASK_ANY);
  
- xcb_keycode_t keycode;
+ xcb_keycode_t *keycode;
  xcb_key_symbols_t *keysyms = xcb_key_symbols_alloc(connection);
  for (int i = 0; i < keys_len; i++) {
-  keycode = *xcb_key_symbols_get_keycode(keysyms, (keys+i)->key);
-  xcb_grab_key(connection, 0, screen->root, (keys+i)->mod, keycode, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+  keycode = xcb_key_symbols_get_keycode(keysyms, (keys+i)->key);
+  xcb_grab_key(connection, 0, screen->root, (keys+i)->mod, *keycode, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+  free(keycode);
  }
  xcb_key_symbols_free(keysyms);
 
