@@ -173,8 +173,6 @@ static int hot_read_config(char *path) {
 
   int found = hot_search(scan, 0, 0, sizeof(hot_key_map)/sizeof(hot_key_map_t) - 1);
   new.key = hot_key_map[found].key;
-  //printf("\nDAMN: %s %s\n\n", scan, hot_key_map[found].id);
-  printf("%d\n", keys_len);
 
   c = kgetc(config);
   for (i = 0; c != '\n' && c != EOF; i++) {
@@ -215,10 +213,7 @@ int main(int argc, char **argv) {
  uint32_t values[] = { XCB_EVENT_MASK_KEY_PRESS };
  connection = xcb_connect(NULL, NULL);
  screen = xcb_setup_roots_iterator(xcb_get_setup(connection)).data;
- xcb_change_window_attributes_checked(connection,
-   screen->root,
-   XCB_CW_EVENT_MASK,
-   values);
+ xcb_change_window_attributes_checked(connection, screen->root, XCB_CW_EVENT_MASK, values);
  xcb_flush(connection);
 
  if (!hot_read_config(argv[1])) return 0;
