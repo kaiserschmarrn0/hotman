@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 
 #define STR_MAX 255
 
@@ -83,6 +84,7 @@ static xcb_screen_t *screen;
 static hot_key_t *keys = NULL;
 static int keys_len,
            keys_max = 8;
+static char *path = NULL;
 
 static void hot_add_key(hot_key_t subject) {
  if (keys_len + 1 == keys_max) {
@@ -200,6 +202,23 @@ static int hot_read_config(char *path) {
  return 1;
 }
 
+static int key_press(xcb_generic_event_t *ev) {
+ xcb_key_press_event_t *e = (xcb_key_press_event_t *)ev;
+ xcb_keysym_t keysym = hot_get_keysym(e->detail);
+ for (int i = 0; i < keys_len; i++)
+  if (keysym == (keys + i)->key && (keys + i)->mod == e->state) {
+   if (nscmp((keys + i)->command, RELOAD_KEY)) hot_read_config(path);
+    else system((keys + i)->command);
+  }
+ return 1;
+}
+
+static int mapping_notify(xcb_generic_event_t *ev) {
+ xcb_mapping_notify_event_t *e = (xcb_mapping_notify_event_t *)ev;
+ if (e->request == XCB_MAPPING_MODIFIER || e->request == XCB_MAPPING_KEYBOARD) return 1;
+ return hot_read_config(path);
+}
+
 int main(int argc, char **argv) {
  if (argc > 2) {
   printf("hotman: too many arguments.\n");
@@ -208,6 +227,8 @@ int main(int argc, char **argv) {
   printf("hotman: no config specified.\n");
   return 0;
  }
+
+ path = argv[1];
  
  //setup connection
  uint32_t values[] = { XCB_EVENT_MASK_KEY_PRESS };
@@ -216,30 +237,22 @@ int main(int argc, char **argv) {
  xcb_change_window_attributes_checked(connection, screen->root, XCB_CW_EVENT_MASK, values);
  xcb_flush(connection);
 
- if (!hot_read_config(argv[1])) return 0;
+ if (!hot_read_config(path)) return 0;
+
+ static int (*events[XCB_NO_OPERATION])(xcb_generic_event_t *event);
+ for (int i = 0; i < XCB_NO_OPERATION; i++) events[i] = NULL;
+ events[XCB_KEY_PRESS] = key_press;
+ events[XCB_MAPPING_NOTIFY] = mapping_notify;
 
  //register cleanup
  atexit(hot_cleanup);
 
  //event loop
  xcb_generic_event_t *event;
- xcb_key_press_event_t *e;
- xcb_keysym_t keysym;
- for (;;) {
-  if (xcb_connection_has_error(connection) != 0) {
-   xcb_disconnect(connection);
-   break;
-  }
+ for (; !xcb_connection_has_error(connection);) {
   event = xcb_wait_for_event(connection);
-  if (event && (event->response_type & ~0x80) == XCB_KEY_PRESS) {
-   e = (xcb_key_press_event_t *)event;
-   keysym = hot_get_keysym(e->detail);
-   for (int i = 0; i < keys_len; i++)
-    if (keysym == (keys + i)->key && (keys + i)->mod == e->state) {
-     if (nscmp((keys + i)->command, RELOAD_KEY)) hot_read_config(argv[1]);
-     else system((keys + i)->command);
-    }
-  }
+  if (events[event->response_type & ~0x80])
+   if (!(events[event->response_type & ~0x80](event))) return 0;
   xcb_flush(connection);
   free(event);
  }
