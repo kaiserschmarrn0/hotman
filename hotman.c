@@ -29,73 +29,63 @@ typedef struct {
 } hot_key_t;
 
 static hot_mod_map_t hot_mod_map[] = {
- { "ctrl" , XCB_MOD_MASK_CONTROL },
- { "alt" , XCB_MOD_MASK_1 },
- { "super" , XCB_MOD_MASK_4 },
- { "shift" , XCB_MOD_MASK_SHIFT },
+ { "ctrl", XCB_MOD_MASK_CONTROL },
+ { "alt", XCB_MOD_MASK_1 },
+ { "super", XCB_MOD_MASK_4 },
+ { "shift", XCB_MOD_MASK_SHIFT },
 };
 
 static hot_key_map_t hot_key_map[] = {
- { "a" , XK_a },
- { "b" , XK_b },
- { "backspace" , XK_BackSpace },
- { "c" , XK_c },
- { "d" , XK_d },
- { "delete" , XK_Delete },
- { "down" , XK_Down },
- { "e" , XK_e },
- { "end" , XK_End },
- { "escape" , XK_Escape },
- { "f" , XK_f },
- { "g" , XK_g },
- { "h" , XK_h },
- { "home" , XK_Home },
- { "i" , XK_i },
- { "j" , XK_j },
- { "k" , XK_k },
- { "l" , XK_l },
- { "left" , XK_Left },
- { "m" , XK_m },
- { "n" , XK_n },
- { "o" , XK_o },
- { "p" , XK_p },
- { "page_down" , XK_Page_Down },
- { "page_up" , XK_Page_Up },
- { "pause" , XK_Pause },
- { "q" , XK_q },
- { "r" , XK_r },
- { "return" , XK_Return },
- { "right" , XK_Right },
- { "s" , XK_s },
- { "scroll_lock" , XK_Scroll_Lock },
- { "t" , XK_t },
- { "tab" , XK_Tab },
- { "u" , XK_u },
- { "up" , XK_Up },
- { "v" , XK_v },
- { "w" , XK_w },
- { "x" , XK_x },
- { "y" , XK_y },
- { "z" , XK_z },
+ { "a", XK_a },
+ { "b", XK_b },
+ { "backspace", XK_BackSpace },
+ { "c", XK_c },
+ { "d", XK_d },
+ { "delete", XK_Delete },
+ { "down", XK_Down },
+ { "e", XK_e },
+ { "end", XK_End },
+ { "escape", XK_Escape },
+ { "f", XK_f },
+ { "g", XK_g },
+ { "h", XK_h },
+ { "home", XK_Home },
+ { "i", XK_i },
+ { "j", XK_j },
+ { "k", XK_k },
+ { "l", XK_l },
+ { "left", XK_Left },
+ { "m", XK_m },
+ { "n", XK_n },
+ { "o", XK_o },
+ { "p", XK_p },
+ { "page_down", XK_Page_Down },
+ { "page_up", XK_Page_Up },
+ { "pause", XK_Pause },
+ { "q", XK_q },
+ { "r", XK_r },
+ { "return", XK_Return },
+ { "right", XK_Right },
+ { "s", XK_s },
+ { "scroll_lock", XK_Scroll_Lock },
+ { "t", XK_t },
+ { "tab", XK_Tab },
+ { "u", XK_u },
+ { "up", XK_Up },
+ { "v", XK_v },
+ { "w", XK_w },
+ { "x", XK_x },
+ { "y", XK_y },
+ { "z", XK_z },
 };
 
 static xcb_connection_t *connection;
 static xcb_screen_t *screen;
+static xcb_key_symbols_t *keysyms = NULL;
 static hot_key_t *keys = NULL;
 static int keys_len,
-           keys_max = 8;
+           keys_max;
 static char *path = NULL;
-
-static void hot_add_key(hot_key_t subject) {
- if (keys_len + 1 == keys_max) {
-  keys_max *= 2;
-  hot_key_t *temp = malloc(keys_max * sizeof(hot_key_t));
-  for (int i = 0; i < keys_len; i++) *(temp + i) = *(keys + i);
-  free(keys);
-  keys = temp;
- } else *(keys + keys_len) = subject;
- keys_len++;
-}
 
 static int hot_first(char key, int depth, int l, int r) {
  int piv = l + (r - l) / 2;
@@ -111,18 +101,35 @@ static int hot_search(char *key, int depth, int l, int r) {
  else return hot_search(key, depth+1, a, b);
 }
 
+static void grab_keys() {
+ if (keysyms) xcb_key_symbols_free(keysyms);
+ keysyms = xcb_key_symbols_alloc(connection);
+ xcb_keycode_t *keycode;
+ for (int i = 0; i < keys_len; i++) {
+  keycode = xcb_key_symbols_get_keycode(keysyms, keys[i].key);
+  xcb_grab_key(connection, 0, screen->root, keys[i].mod, *keycode, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+  free(keycode);
+ }
+}
+
+static void hot_add_key(hot_key_t subject) {
+ if (keys_len + 1 == keys_max) {
+  keys_max *= 2;
+  hot_key_t *temp = malloc(keys_max * sizeof(hot_key_t));
+  for (int i = 0; i < keys_len; i++) *(temp + i) = *(keys + i);
+  free(keys);
+  keys = temp;
+ }
+ *(keys + keys_len) = subject;
+ keys_len++;
+}
+
 static void hot_cleanup(void) {
  free(keys);
  xcb_ungrab_key(connection, XCB_GRAB_ANY, screen->root, XCB_MOD_MASK_ANY);
+ if (keysyms) xcb_key_symbols_free(keysyms);
  xcb_flush(connection);
  xcb_disconnect(connection);
-}
-
-static xcb_keysym_t hot_get_keysym(xcb_keycode_t keycode) {
- xcb_key_symbols_t *keysyms = xcb_key_symbols_alloc(connection);
- xcb_keysym_t keysym = xcb_key_symbols_get_keysym(keysyms, keycode, 0);
- xcb_key_symbols_free(keysyms);
- return keysym;
 }
 
 int nscmp(char *one, char *two) {
@@ -142,11 +149,12 @@ char kgetc(FILE *subject) {
 static int hot_read_config(char *path) {
  FILE *config;
  if (!(config = fopen(path, "r"))) {
-  printf("hotman: can't open config.\n");
+  LOG("can't open config");
   return 0;
  }
 
  if (keys) free(keys);
+ keys_max = 8;
  keys = malloc(keys_max * sizeof(hot_key_t));
 
  int i;
@@ -188,49 +196,40 @@ static int hot_read_config(char *path) {
 
  fclose(config);
 
- xcb_ungrab_key(connection, XCB_GRAB_ANY, screen->root, XCB_MOD_MASK_ANY);
- 
- xcb_keycode_t *keycode;
- xcb_key_symbols_t *keysyms = xcb_key_symbols_alloc(connection);
- for (int i = 0; i < keys_len; i++) {
-  keycode = xcb_key_symbols_get_keycode(keysyms, (keys+i)->key);
-  xcb_grab_key(connection, 0, screen->root, (keys+i)->mod, *keycode, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
-  free(keycode);
- }
- xcb_key_symbols_free(keysyms);
+ grab_keys();
 
  return 1;
 }
 
 static int key_press(xcb_generic_event_t *ev) {
  xcb_key_press_event_t *e = (xcb_key_press_event_t *)ev;
- xcb_keysym_t keysym = hot_get_keysym(e->detail);
+ xcb_keysym_t keysym = xcb_key_symbols_get_keysym(keysyms, e->detail, 0);
  for (int i = 0; i < keys_len; i++)
   if (keysym == (keys + i)->key && (keys + i)->mod == e->state) {
-   if (nscmp((keys + i)->command, RELOAD_KEY)) hot_read_config(path);
+   if (nscmp((keys + i)->command, RELOAD_KEY)) return hot_read_config(path);
     else system((keys + i)->command);
   }
- return 1;
 }
 
 static int mapping_notify(xcb_generic_event_t *ev) {
  xcb_mapping_notify_event_t *e = (xcb_mapping_notify_event_t *)ev;
- if (e->request == XCB_MAPPING_MODIFIER || e->request == XCB_MAPPING_KEYBOARD) return 1;
- return hot_read_config(path);
+ if (e->request != XCB_MAPPING_MODIFIER && e->request != XCB_MAPPING_KEYBOARD) return 1;
+ xcb_ungrab_key(connection, XCB_GRAB_ANY, screen->root, XCB_MOD_MASK_ANY);
+ grab_keys();
+ return 1;
 }
 
 int main(int argc, char **argv) {
  if (argc > 2) {
-  printf("hotman: too many arguments.\n");
+  LOG("too many arguments");
   return 0;
  } else if (argc < 2) {
-  printf("hotman: no config specified.\n");
+  LOG("no config specified");
   return 0;
  }
 
  path = argv[1];
  
- //setup connection
  uint32_t values[] = { XCB_EVENT_MASK_KEY_PRESS };
  connection = xcb_connect(NULL, NULL);
  screen = xcb_setup_roots_iterator(xcb_get_setup(connection)).data;
@@ -244,14 +243,12 @@ int main(int argc, char **argv) {
  events[XCB_KEY_PRESS] = key_press;
  events[XCB_MAPPING_NOTIFY] = mapping_notify;
 
- //register cleanup
  atexit(hot_cleanup);
 
- //event loop
  xcb_generic_event_t *event;
  for (; !xcb_connection_has_error(connection);) {
   event = xcb_wait_for_event(connection);
-  if (events[event->response_type & ~0x80])
+  if (events[event->response_type & ~0x80]) 
    if (!(events[event->response_type & ~0x80](event))) return 0;
   xcb_flush(connection);
   free(event);
