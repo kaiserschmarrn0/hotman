@@ -1,28 +1,23 @@
-include config.mk
-
 SRC = hotman.c
-DEPS = config.h types.h
 OBJ = $(SRC:.c=.o)
+
+PREFIX = /usr/local
 
 all: hotman
 
 .c.o:
-	$(CC) $(STCFLAGS) -c $<
-
-hotman.o:
-
-$(OBJ): config.mk
+	$(CC) -I/usr/X11R6/include -c  $<
 
 hotman: $(OBJ)
-	$(CC) -o $@ $(OBJ) $(STCFLAGS) $(STLDFLAGS) -lxcb -lxcb-keysyms
+	$(CC) -o $@ $(OBJ) -I/usr/X11R6/include -L/usr/X11R6/lib -lxcb -lxcb-keysyms
 
-clean:
-	rm -f hotman $(OBJ)
-
-install: hotman
+install:
 	mkdir -p $(DESTDIR)$(PREFIX)/bin
 	cp -f hotman $(DESTDIR)$(PREFIX)/bin
 	chmod 755 $(DESTDIR)$(PREFIX)/bin/hotman
 
 uninstall:
-	rm -f $(DESTDIR)$(PREFIX)/bin/hotman
+	rm -f $(DESTDIR)$(PREFIX)/bin/hotman $(OBJ)
+
+clean:
+	rm -f hotman $(OBJ)
