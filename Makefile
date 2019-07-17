@@ -9,9 +9,9 @@ all: hotman
 	$(CC) -I/usr/X11R6/include -c  $<
 
 hotman: $(OBJ)
-	$(CC) -o $@ $(OBJ) -I/usr/X11R6/include -L/usr/X11R6/lib -lxcb -lxcb-keysyms
+	$(CC) -g -o $@ $(OBJ) -I/usr/X11R6/include -L/usr/X11R6/lib -lxcb -lxcb-keysyms
 
-install:
+install: hotman
 	mkdir -p $(DESTDIR)$(PREFIX)/bin
 	cp -f hotman $(DESTDIR)$(PREFIX)/bin
 	chmod 755 $(DESTDIR)$(PREFIX)/bin/hotman
